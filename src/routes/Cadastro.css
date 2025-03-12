@@ -1,0 +1,122 @@
+.cadastro-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 0.1rem solid #888;
+    border-radius: 1rem;
+    background-color: #17191f;
+    gap: 7.2rem;
+    width: 45rem;
+    margin: 1.9rem auto;
+}
+
+.cadastro-container img {
+    width: 48.5%;
+    height: 33rem;
+    border-radius: 0rem 1rem 1rem 0rem;
+}
+
+.cadastro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    margin: 2rem -4rem 3rem 4rem;
+}
+
+.cadastro h1 {
+    margin-bottom: 1.2rem;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.2;
+    font-style: italic;
+    color: #11b2d6;
+}
+
+.cadastro-inputs {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+}
+
+.cadastro input {
+    width: 15rem;
+    height: 1.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    border: none;
+    border-radius: .5rem;
+}
+
+.cadastro-buttons {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+
+    .login-btn {
+        padding: 0.6rem 1.5rem;
+        border: none;
+        border-radius: 0.5rem;
+        background-color: #11b2d6;
+        color: #17191f;
+        cursor: pointer;
+        margin: 0rem 0rem 0rem 10rem;
+        font-weight: 700;
+
+        &:hover {
+            background-color: #17191f;
+            color: #fff;
+            border: 1px solid #fff;
+            transition: 0.3s;
+            transform: scale(0.92);
+            opacity: 1;
+        }
+    }
+
+}
+
+.cadastro-btns-div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    gap: 8rem;
+    margin-top: -0.6rem;
+    margin-right: 6rem;
+
+    .cadastro-btn {
+        padding-right: 0.4rem;
+        border: none;
+        border-right: 0.1rem solid #777;
+        background-color: transparent;
+        color: #fff;
+        cursor: pointer;
+
+        &:hover {
+            color: #11b2d6;
+            text-decoration: underline;
+        }
+    }
+
+    .esqueceu-senha {
+        color: #fff;
+        font-size: 0.8rem;
+        border: none;
+        text-align: center;
+        width: 7rem;
+        background-color: transparent;
+        margin-left: -8rem;
+
+        &:hover {
+            cursor: pointer;
+            color: #11b2d6;
+            text-decoration: underline;
+        }
+    }
+}

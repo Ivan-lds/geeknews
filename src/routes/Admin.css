@@ -1,0 +1,68 @@
+.admin h1 {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: center;
+    gap: 12rem;
+    margin-left: 22rem;
+    margin-bottom: 2rem;
+    align-items: center;
+}
+
+.search-input {
+    background-color: rgb(235, 233, 233);
+    padding: 0rem 2rem 0rem 2rem;
+    height: 2.2rem;
+    border-radius: 2.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: none;
+
+    &::placeholder {
+        color: #0e1217;
+    }
+}
+
+.post-gerenciar {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 0.1rem solid #777;
+}
+
+.actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.edit-btn {
+    background-color: #13c9e9;
+    color: #fff;
+    padding: 0.5rem 1.5rem;
+    border-radius: 1rem;
+    border: none;
+    text-decoration: none;
+
+    &:hover {
+        background-color: #0e9ab7;
+    }
+}
+
+.delete-btn {
+    background-color: #eb1717;
+    color: #fff;
+    padding: 0.5rem 1.5rem;
+    border-radius: 1rem;
+    border: none;
+    text-decoration: none;
+
+    &:hover {
+        background-color: #b70e0e;
+    }
+}
