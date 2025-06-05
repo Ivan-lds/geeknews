@@ -1,14 +1,19 @@
 import { Outlet } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import { useState } from "react";
+import styles from "./App.module.css";
 
 const App = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   return (
-    <div>
+    <div className={styles.app}>
       <Navbar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
-      <Outlet /> {/* 🔹 Renderiza a rota filha (ex: Login) */}
+      <main className={styles.main}>
+        <Outlet />
+      </main>
+      <Footer />
     </div>
   );
 };

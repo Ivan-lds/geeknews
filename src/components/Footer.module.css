@@ -1,0 +1,122 @@
+.footer {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    padding: 4rem 0 2rem;
+    margin-top: 4rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.footer_content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+}
+
+.footer_section h3 {
+    color: var(--color-text-primary);
+    font-size: 1.2rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--color-accent);
+    display: inline-block;
+}
+
+.footer_section p {
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+.social_links {
+    display: flex;
+    gap: 1rem;
+}
+
+.social_links a {
+    color: var(--color-text-secondary);
+    font-size: 1.5rem;
+    transition: color 0.2s ease;
+}
+
+.social_links a:hover {
+    color: var(--color-accent);
+}
+
+.footer_section ul {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.footer_section ul li a {
+    color: var(--color-text-secondary);
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.footer_section ul li a:hover {
+    color: var(--color-accent);
+}
+
+.contact_info li {
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.contact_info li svg {
+    color: var(--color-accent);
+    font-size: 1.2rem;
+}
+
+.footer_bottom {
+    max-width: 1200px;
+    margin: 2rem auto 0;
+    padding: 1.5rem 1rem 0;
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 1024px) {
+    .footer_content {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 3rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .footer {
+        padding: 3rem 0 1.5rem;
+        margin-top: 3rem;
+    }
+
+    .footer_content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .footer_section {
+        text-align: center;
+    }
+
+    .social_links {
+        justify-content: center;
+    }
+
+    .footer_section ul li a {
+        justify-content: center;
+    }
+
+    .contact_info li {
+        justify-content: center;
+    }
+}

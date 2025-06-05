@@ -1,0 +1,25 @@
+.app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-bg-primary);
+}
+
+.main {
+    flex: 1;
+    padding: 2rem 0;
+    background-color: var(--color-bg-primary);
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .main {
+        padding: 1rem 0;
+    }
+}

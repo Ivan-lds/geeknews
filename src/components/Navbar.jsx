@@ -1,128 +1,95 @@
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
-import { CiPaperplane } from "react-icons/ci";
-import { CiGrid2H } from "react-icons/ci";
-import { CiLogin } from "react-icons/ci";
-import { CiLogout } from "react-icons/ci";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { CiSearch, CiMenuFries } from "react-icons/ci";
+import { CiStar } from "react-icons/ci";
 import styles from "./Navbar.module.css";
 
-const Navbar = ({ searchTerm, setSearchTerm }) => {
-  const isAdmin = localStorage.getItem("isAdmin") === "true";
-  const userEmail = localStorage.getItem("userEmail");
+const Navbar = () => {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user && user.isAdmin) {
+      setIsAdmin(true);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setIsAdmin(false);
+    navigate("/");
+  };
+
   const handleSearch = (e) => {
-    if (e.key === "Enter" && searchTerm.trim() !== "") {
-      navigate(`/search?q=${searchTerm}`);
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("isAdmin");
-    localStorage.removeItem("userRole");
-    navigate("/");
-    window.location.reload();
-  };
-
   return (
-    <>
-      {isAdmin ? (
-        <nav className={styles.navbar}>
-          <div className={styles.menu}>
-            <button>
-              <CiGrid2H />
-            </button>
-            <h2>
-              <Link to={`/`}>
-                GEEK<span>NEWS</span>
+    <nav className={styles.navbar}>
+      <div className={styles.navbar_content}>
+        <Link to="/" className={styles.logo}>
+          <CiStar className={styles.logo_icon} />
+          GEEKNEWS
+        </Link>
+
+        <div className={styles.nav_links}>
+          <Link to="/" className={styles.nav_link}>
+            Início
+          </Link>
+          <Link to="/noticias" className={styles.nav_link}>
+            Notícias
+          </Link>
+          <Link to="/lancamentos" className={styles.nav_link}>
+            Lançamentos
+          </Link>
+          <Link to="/reviews" className={styles.nav_link}>
+            Reviews
+          </Link>
+        </div>
+
+        <form onSubmit={handleSearch} className={styles.search_bar}>
+          <CiSearch className={styles.search_icon} />
+          <input
+            type="text"
+            placeholder="Buscar notícias..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={styles.search_input}
+          />
+        </form>
+
+        <div className={styles.auth_buttons}>
+          {isAdmin ? (
+            <>
+              <Link to="/admin" className={styles.nav_link}>
+                Admin
               </Link>
-            </h2>
-          </div>
-          <ul>
-            <div className={styles.search_container_admin}>
-              <input
-                className={styles.search_input}
-                type="search"
-                placeholder="Pesquisar..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={handleSearch} // Captura a tecla "Enter"
-              />
-              <button onClick={handleSearch}>
-                <CiPaperplane />
+              <button onClick={handleLogout} className={styles.login_button}>
+                Sair
               </button>
-            </div>
-            <li className={styles.li_admin}>
-              <Link to={`/`}>Home</Link>
-            </li>
-            <li className={styles.li_admin}>
-              <Link to={`/new`} className={styles.new_btn}>
-                Novo Post
+            </>
+          ) : (
+            <>
+              <Link to="/login" className={styles.login_button}>
+                Entrar
               </Link>
-            </li>
-            <li className={styles.li_admin}>
-              <Link to={`/admin`}>Gerenciar</Link>
-            </li>
-            <li className={styles.li_admin}>
-              <button onClick={handleLogout}>
-                <CiLogout />
-              </button>
-            </li>
-          </ul>
-        </nav>
-      ) : (
-        <nav className={styles.navbar}>
-          <div className={styles.menu}>
-            <button>
-              <CiGrid2H />
-            </button>
-            <h2>
-              <Link to={`/`}>
-                GEEK<span>NEWS</span>
+              <Link to="/cadastro" className={styles.register_button}>
+                Cadastrar
               </Link>
-            </h2>
-          </div>
-          <div className={styles.search_container}>
-            <input
-              className={styles.search_input}
-              type="search"
-              placeholder="Pesquisar..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={handleSearch} // Captura a tecla "Enter"
-            />
-            <button onClick={handleSearch}>
-              <CiPaperplane />
-            </button>
-          </div>
-          <ul>
-            <li>
-              <Link to={`/`}>Home</Link>
-            </li>
-            <li>
-              <Link to={`/animes`} className={styles.new_btn}>
-                Animes
-              </Link>
-            </li>
-            <li>
-              <Link to={`/personagens`}>Personagens</Link>
-            </li>
-            <li className={styles.button_login}>
-              {userEmail ? (
-                <button onClick={handleLogout}>
-                  <CiLogout />
-                </button>
-              ) : (
-                <Link to={`/login`}>
-                  <CiLogin />
-                </Link>
-              )}
-            </li>
-          </ul>
-        </nav>
-      )}
-    </>
+            </>
+          )}
+        </div>
+
+        <button className={styles.menu_button}>
+          <CiMenuFries />
+        </button>
+      </div>
+    </nav>
   );
 };
 
