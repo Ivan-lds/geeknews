@@ -50,6 +50,28 @@
     font-size: 0.9rem;
     border: none;
     border-radius: .5rem;
+    background-color: #2c2d30;
+}
+
+/* Estilo específico para o texto digitado */
+.cadastro input:not([type="password"]) {
+    color: #ffffff;
+}
+
+/* Estilo específico para campos de senha */
+.cadastro input[type="password"] {
+    color: #ffffff;
+}
+
+/* Estilo para o placeholder */
+.cadastro input::placeholder {
+    color: #a9abb3;
+}
+
+/* Estilo para quando o input está em foco */
+.cadastro input:focus {
+    outline: none;
+    border: 1px solid #11b2d6;
 }
 
 .cadastro-buttons {

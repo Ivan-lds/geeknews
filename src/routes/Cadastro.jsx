@@ -42,19 +42,24 @@ const Cadastro = () => {
 
     // Criar um novo usuário
     const newUser = {
+      name: username,
       email,
-      username,
       password,
-      role: "user",
     };
 
     try {
-      await blogFetch.post("/Users", newUser);
-      alert("Cadastro realizado com sucesso!");
-      navigate("/login"); // Redireciona para a tela de login
+      const response = await blogFetch.post("/api/auth/register", newUser);
+      if (response.data) {
+        alert("Cadastro realizado com sucesso!");
+        navigate("/login"); // Redireciona para a tela de login
+      }
     } catch (error) {
       console.log("Erro ao cadastrar usuário:", error);
-      alert("Erro ao cadastrar usuário. Tente novamente.");
+      if (error.response?.data?.error) {
+        alert(error.response.data.error);
+      } else {
+        alert("Erro ao cadastrar usuário. Tente novamente.");
+      }
     }
   };
 
