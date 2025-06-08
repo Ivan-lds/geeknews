@@ -38,27 +38,69 @@ const Post = () => {
 
   const getTimeElapsed = (timestamp) => {
     if (!timestamp) return "";
+    
+    // Converter o timestamp do SQLite para UTC
+    const [datePart, timePart] = timestamp.split(' ');
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hour, minute, second] = timePart.split(':').map(Number);
+    
+    // Criar a data em UTC
+    const commentDate = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
     const now = new Date();
-    const commentDate = new Date(timestamp);
+    
+    console.log('Debug tempo:', {
+      timestamp,
+      datePart,
+      timePart,
+      commentDateUTC: commentDate.toISOString(),
+      nowUTC: now.toISOString(),
+      commentDateLocal: commentDate.toString(),
+      nowLocal: now.toString(),
+      diffMs: now - commentDate,
+      diffSeconds: Math.floor((now - commentDate) / 1000)
+    });
+
+    // Garantir que estamos trabalhando com datas válidas
+    if (isNaN(commentDate.getTime())) {
+      console.error('Data inválida:', timestamp);
+      return "data inválida";
+    }
+
     const differenceInSeconds = Math.floor((now - commentDate) / 1000);
 
+    // Se a diferença for muito pequena (menos de 1 segundo)
+    if (differenceInSeconds < 1) {
+      return "agora mesmo";
+    }
+
+    // Se a data do comentário for no futuro
+    if (differenceInSeconds < 0) {
+      console.warn('Data no futuro detectada:', {
+        timestamp,
+        now: now.toISOString(),
+        commentDate: commentDate.toISOString(),
+        diffSeconds: differenceInSeconds
+      });
+      return "agora mesmo";
+    }
+
     if (differenceInSeconds < 60) {
-      return `${differenceInSeconds} segundos atrás`;
+      return `${differenceInSeconds} ${differenceInSeconds === 1 ? 'segundo' : 'segundos'} atrás`;
     } else if (differenceInSeconds < 3600) {
       const minutes = Math.floor(differenceInSeconds / 60);
-      return `${minutes} minutos atrás`;
+      return `${minutes} ${minutes === 1 ? 'minuto' : 'minutos'} atrás`;
     } else if (differenceInSeconds < 86400) {
       const hours = Math.floor(differenceInSeconds / 3600);
-      return `${hours} horas atrás`;
+      return `${hours} ${hours === 1 ? 'hora' : 'horas'} atrás`;
     } else if (differenceInSeconds < 2592000) {
       const days = Math.floor(differenceInSeconds / 86400);
-      return `${days} dias atrás`;
+      return `${days} ${days === 1 ? 'dia' : 'dias'} atrás`;
     } else if (differenceInSeconds < 31536000) {
       const months = Math.floor(differenceInSeconds / 2592000);
-      return `${months} meses atrás`;
+      return `${months} ${months === 1 ? 'mês' : 'meses'} atrás`;
     } else {
       const years = Math.floor(differenceInSeconds / 31536000);
-      return `${years} anos atrás`;
+      return `${years} ${years === 1 ? 'ano' : 'anos'} atrás`;
     }
   };
 

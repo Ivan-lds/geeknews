@@ -225,13 +225,11 @@ app.post('/Comments', async (req, res) => {
     );
     console.log('Comentário inserido com sucesso:', result);
 
-    const newComment = {
-      id: result.lastID,
-      post_id: postId,
-      user: user || "Anônimo",
-      comment: text,
-      created_at: new Date().toISOString()
-    };
+    // Buscar o comentário recém-criado para obter o timestamp correto do banco
+    const newComment = await db.get(
+      'SELECT id, post_id, user, comment, created_at FROM comments WHERE id = ?',
+      [result.lastID]
+    );
 
     console.log('Retornando novo comentário:', newComment);
     res.status(201).json(newComment);
