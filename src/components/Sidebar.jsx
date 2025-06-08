@@ -12,6 +12,7 @@ const Sidebar = () => {
       try {
         const response = await blogFetch.get("/Notices");
         const data = response.data;
+        console.log("Posts populares recebidos:", data); // Log para debug
         setPopularPosts(data.slice(0, 3));
       } catch (error) {
         console.error("Erro ao buscar posts populares:", error);
@@ -43,7 +44,15 @@ const Sidebar = () => {
           {popularPosts.map((post) => (
             <div key={post.id} className={styles.popular_post}>
               <div className={styles.post_image}>
-                <img src={post.imageUrl} alt={post.title} />
+                <img 
+                  src={post.image_url} 
+                  alt={post.title}
+                  onError={(e) => {
+                    console.error("Erro ao carregar imagem:", e);
+                    e.target.style.display = 'none';
+                  }}
+                  onLoad={() => console.log("Imagem carregada com sucesso:", post.image_url)}
+                />
               </div>
               <div className={styles.post_content}>
                 <h4>

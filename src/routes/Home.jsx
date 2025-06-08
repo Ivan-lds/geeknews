@@ -14,6 +14,7 @@ const Home = () => {
       setLoading(true);
       const response = await blogFetch.get("/Notices");
       const data = response.data;
+      console.log("Posts recebidos:", data); // Log para debug
       setPosts(data.reverse());
     } catch (error) {
       console.error("Erro ao buscar posts:", error);
@@ -39,14 +40,21 @@ const Home = () => {
                 <article key={post.id} className={styles.post_card}>
                   <Link to={`/Notices/${post.id}`}>
                     <div className={styles.post_image}>
-                      <img src={post.imageUrl} alt={post.title} />
+                      <img 
+                        src={post.image_url} 
+                        alt={post.title}
+                        onError={(e) => {
+                          console.error("Erro ao carregar imagem:", e);
+                          e.target.style.display = 'none';
+                        }}
+                        onLoad={() => console.log("Imagem carregada com sucesso:", post.image_url)}
+                      />
                     </div>
                     <div className={styles.post_content}>
                       <h2>{post.title}</h2>
-                      <p>{post.body.substring(0, 150)}...</p>
+                      <p>{post.body?.substring(0, 150)}...</p>
                       <div className={styles.post_meta}>
                         <div className={styles.post_author}>
-                          <img src={post.author?.avatar || "/default-avatar.png"} alt={post.author?.name || "Autor"} />
                           <span>{post.author || "Autor"}</span>
                         </div>
                         <time className={styles.post_date}>

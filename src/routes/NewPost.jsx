@@ -9,11 +9,43 @@ const NewPost = () => {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [body2, setBody2] = useState("");
-  const [imageUrl, setImageUrl] = useState(""); // Para URL da imagem
-  const [imageUrl2, setImageUrl2] = useState(""); // Para URL da 2ª imagem
-  const [videoUrl, setVideoUrl] = useState(""); // Para URL do vídeo
+  const [image_url, setImageUrl] = useState(""); // Para URL da imagem
+  const [image_url2, setImageUrl2] = useState(""); // Para URL da 2ª imagem
+  const [video_url, setVideoUrl] = useState(""); // Para URL do vídeo
   const [author, setAuthor] = useState("");
   const [date, setDate] = useState("");
+
+  // Função para converter URL do YouTube para formato de embed
+  const convertToEmbedUrl = (url) => {
+    if (!url) return "";
+    
+    // Se já for uma URL de embed, retorna como está
+    if (url.includes("youtube.com/embed")) return url;
+    
+    try {
+      const urlObj = new URL(url);
+      
+      // Converte URLs do formato youtu.be
+      if (urlObj.hostname === "youtu.be") {
+        const videoId = urlObj.pathname.slice(1);
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+      
+      // Converte URLs do formato youtube.com/watch
+      if (urlObj.hostname === "www.youtube.com" || urlObj.hostname === "youtube.com") {
+        const videoId = urlObj.searchParams.get("v");
+        if (videoId) {
+          return `https://www.youtube.com/embed/${videoId}`;
+        }
+      }
+      
+      // Se não for uma URL do YouTube, retorna como está
+      return url;
+    } catch (error) {
+      console.error("Erro ao converter URL do vídeo:", error);
+      return url;
+    }
+  };
 
   // Função para carregar o post para edição
   const getPost = async () => {
@@ -24,9 +56,10 @@ const NewPost = () => {
 
         setTitle(data.title);
         setBody(data.body);
-        setImageUrl(data.imageUrl || ""); // Se existir a URL da imagem
-        setImageUrl2(data.imageUrl2 || "");
-        setVideoUrl(data.videoUrl || ""); // Se existir a URL do vídeo
+        setImageUrl(data.image_url || "");
+        setImageUrl2(data.image_url2 || "");
+        // Converte a URL do vídeo para o formato de embed ao carregar
+        setVideoUrl(convertToEmbedUrl(data.video_url) || "");
         setAuthor(data.author);
         setDate(data.date);
       } catch (error) {
@@ -43,9 +76,10 @@ const NewPost = () => {
       title,
       body,
       body2,
-      imageUrl,
-      imageUrl2,
-      videoUrl,
+      image_url,
+      image_url2,
+      // Converte a URL do vídeo para o formato de embed ao salvar
+      video_url: convertToEmbedUrl(video_url),
       author,
       date,
       userId: 1,
@@ -84,36 +118,36 @@ const NewPost = () => {
               />
             </div>
             <div className="form-control">
-              <label htmlFor="imageUrl">URL da Imagem:</label>
+              <label htmlFor="image_url">URL da Imagem:</label>
               <input
                 type="url"
-                name="imageUrl"
-                id="imageUrl"
+                name="image_url"
+                id="image_url"
                 placeholder="Digite a URL da imagem"
                 onChange={(e) => setImageUrl(e.target.value)}
-                value={imageUrl}
+                value={image_url}
               />
             </div>
             <div className="form-control">
-              <label htmlFor="imageUrl2"></label>
+              <label htmlFor="image_url2"></label>
               <input
                 type="url"
-                name="imageUrl_2"
-                id="imageUrl_2"
+                name="image_url2"
+                id="image_url2"
                 placeholder="URL da 2ª imagem"
                 onChange={(e) => setImageUrl2(e.target.value)}
-                value={imageUrl2}
+                value={image_url2}
               />
             </div>
             <div className="form-control">
-              <label htmlFor="videoUrl">URL do Vídeo:</label>
+              <label htmlFor="video_url">URL do Vídeo:</label>
               <input
                 type="url"
-                name="videoUrl"
-                id="videoUrl"
+                name="video_url"
+                id="video_url"
                 placeholder="Digite a URL do vídeo"
                 onChange={(e) => setVideoUrl(e.target.value)}
-                value={videoUrl}
+                value={video_url}
               />
             </div>
             <div className="form-control">

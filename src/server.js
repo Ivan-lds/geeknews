@@ -140,10 +140,10 @@ app.get('/Notices/:id', async (req, res) => {
 
 app.post('/Notices', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { title, body, body2, imageUrl, imageUrl2, videoUrl, author } = req.body;
+    const { title, body, body2, image_url, image_url2, video_url, author } = req.body;
     const result = await db.run(
       'INSERT INTO posts (title, body, body2, image_url, image_url2, video_url, author, date, author_id) VALUES (?, ?, ?, ?, ?, ?, ?, datetime("now"), ?)',
-      [title, body, body2, imageUrl, imageUrl2, videoUrl, author, req.session.user.id]
+      [title, body, body2, image_url, image_url2, video_url, author, req.session.user.id]
     );
     res.status(201).json({ id: result.lastID });
   } catch (error) {
@@ -153,10 +153,10 @@ app.post('/Notices', requireAuth, requireAdmin, async (req, res) => {
 
 app.put('/Notices/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { title, body, body2, imageUrl, imageUrl2, videoUrl, author } = req.body;
+    const { title, body, body2, image_url, image_url2, video_url, author } = req.body;
     const result = await db.run(
       'UPDATE posts SET title = ?, body = ?, body2 = ?, image_url = ?, image_url2 = ?, video_url = ?, author = ?, date = datetime("now") WHERE id = ?',
-      [title, body, body2, imageUrl, imageUrl2, videoUrl, author, req.params.id]
+      [title, body, body2, image_url, image_url2, video_url, author, req.params.id]
     );
     if (result.changes === 0) return res.status(404).json({ message: 'Post não encontrado' });
     res.json({ message: 'Post atualizado com sucesso' });

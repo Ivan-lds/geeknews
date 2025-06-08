@@ -15,6 +15,7 @@ const Header = () => {
         setLoading(true);
         const response = await blogFetch.get("/Notices");
         const data = response.data;
+        console.log("Posts em destaque recebidos:", data); // Log para debug
         // Pegando os 5 posts mais recentes para o carrossel
         setFeaturedPosts(data.slice(0, 5));
       } catch (error) {
@@ -61,7 +62,7 @@ const Header = () => {
             key={post.id}
             className={`${styles.slide} ${index === currentSlide ? styles.active : ""}`}
             style={{
-              backgroundImage: post.imageUrl ? `url(${post.imageUrl})` : 'none',
+              backgroundImage: post.image_url ? `url(${post.image_url})` : 'none',
             }}
           >
             <div className={styles.slide_content}>

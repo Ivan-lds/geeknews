@@ -46,7 +46,15 @@ const Search = () => {
         {filteredPosts.length > 0 ? (
           filteredPosts.map((post) => (
             <div className={styles.post} key={post.id}>
-              <img src={post.imageUrl} alt={post.title} />
+              <img 
+                src={post.image_url} 
+                alt={post.title}
+                onError={(e) => {
+                  console.error("Erro ao carregar imagem:", e);
+                  e.target.style.display = 'none';
+                }}
+                onLoad={() => console.log("Imagem carregada com sucesso:", post.image_url)}
+              />
               <section className={styles.post_info}>
                 <div className={styles.post_content}>
                   <h2>{post.title}</h2>

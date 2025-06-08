@@ -17,12 +17,16 @@ const Post = () => {
     const getPost = async () => {
       try {
         const response = await blogFetch.get(`/Notices/${id}`);
+        console.log("Dados do post recebidos:", response.data);
+        console.log("URL da imagem:", response.data.image_url);
+        console.log("URL da segunda imagem:", response.data.image_url2);
+        console.log("URL do vídeo:", response.data.video_url);
         setPost(response.data);
 
         const commentsResponse = await blogFetch.get(`/Comments/${id}`);
         setComments(commentsResponse.data);
       } catch (error) {
-        console.log(error);
+        console.error("Erro ao buscar post:", error);
       }
     };
     getPost();
@@ -97,8 +101,13 @@ const Post = () => {
 
   const formatDate = (isoDate) => {
     if (!isoDate) return "";
-    const [year, month, day] = isoDate.split("-");
-    return `${day}/${month}/${year}`;
+    try {
+      const date = new Date(isoDate);
+      return date.toLocaleDateString("pt-BR");
+    } catch (error) {
+      console.error("Erro ao formatar data:", error);
+      return isoDate;
+    }
   };
 
   const formatBody = (body) => {
@@ -124,28 +133,59 @@ const Post = () => {
               <p className={styles.date}>{formatDate(post.date)}</p>
             </div>
           </section>
-          <img src={post.imageUrl} alt={post.title} />
+          {post.image_url && (
+            <div style={{ margin: '20px 0' }}>
+              <img 
+                src={post.image_url} 
+                alt={post.title} 
+                onError={(e) => {
+                  console.error("Erro ao carregar imagem:", e);
+                  e.target.style.display = 'none';
+                }}
+                onLoad={() => console.log("Imagem carregada com sucesso")}
+              />
+            </div>
+          )}
           <div
             className={styles.post_body}
             dangerouslySetInnerHTML={{ __html: formatBody(post.body) }}
           />
           <div
             style={{
-              display: !post.imageUrl2 && !post.videoUrl ? "none" : "block",
+              display: !post.image_url2 && !post.video_url ? "none" : "block",
             }}
           >
-            {post.imageUrl2 && <img src={post.imageUrl2} alt={post.title} />}
-            {post.videoUrl && (
-              <iframe
-                width="560"
-                height="315"
-                src={post.videoUrl}
-                title="YouTube video player"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerPolicy="strict-origin-when-cross-origin"
-                allowFullScreen
-              ></iframe>
+            {post.image_url2 && (
+              <div style={{ margin: '20px 0' }}>
+                <img 
+                  src={post.image_url2} 
+                  alt={post.title} 
+                  onError={(e) => {
+                    console.error("Erro ao carregar segunda imagem:", e);
+                    e.target.style.display = 'none';
+                  }}
+                  onLoad={() => console.log("Segunda imagem carregada com sucesso")}
+                />
+              </div>
+            )}
+            {post.video_url && (
+              <div style={{ margin: '20px 0' }}>
+                <iframe
+                  width="560"
+                  height="315"
+                  src={post.video_url}
+                  title="YouTube video player"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                  onError={(e) => {
+                    console.error("Erro ao carregar vídeo:", e);
+                    e.target.style.display = 'none';
+                  }}
+                  onLoad={() => console.log("Vídeo carregado com sucesso:", post.video_url)}
+                ></iframe>
+              </div>
             )}
           </div>
 
