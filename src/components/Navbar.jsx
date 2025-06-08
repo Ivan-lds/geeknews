@@ -1,47 +1,85 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CiSearch, CiMenuFries } from "react-icons/ci";
-import { CiStar } from "react-icons/ci";
-import styles from "./Navbar.module.css";
+import { CiSearch, CiMenuFries, CiStar } from "react-icons/ci";
+import styles from "../styles/Navbar.module.css";
 
 const Navbar = () => {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (user && user.isAdmin) {
-      setIsAdmin(true);
-    }
+    // Verificar status da sessão
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/status", {
+          credentials: "include"
+        });
+        const data = await response.json();
+        setUser(data.user);
+      } catch (error) {
+        console.error("Erro ao verificar autenticação:", error);
+        setUser(null);
+      }
+    };
+
+    // Verificar autenticação inicial
+    checkAuth();
+
+    // Adicionar listener para eventos de autenticação
+    window.addEventListener("auth", checkAuth);
+
+    return () => {
+      window.removeEventListener("auth", checkAuth);
+    };
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    setIsAdmin(false);
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include"
+      });
+      
+      // Atualizar estado
+      setUser(null);
+      
+      // Disparar evento de autenticação
+      window.dispatchEvent(new Event("auth"));
+      
+      // Redirecionar para home
+      navigate("/");
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
   };
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-    }
+    // TODO: Implementar busca quando a API estiver pronta
+    // Por enquanto, apenas redireciona para a página de notícias
+    navigate("/Notices");
+    console.log("Busca por:", searchQuery);
+  };
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
   };
 
   return (
     <nav className={styles.navbar}>
-      <div className={styles.navbar_content}>
+      <div className={styles.nav_content}>
         <Link to="/" className={styles.logo}>
           <CiStar className={styles.logo_icon} />
           GEEKNEWS
         </Link>
 
-        <div className={styles.nav_links}>
+        <div className={`${styles.nav_links} ${isMenuOpen ? styles.active : ""}`}>
           <Link to="/" className={styles.nav_link}>
             Início
           </Link>
-          <Link to="/noticias" className={styles.nav_link}>
+          <Link to="/Notices" className={styles.nav_link}>
             Notícias
           </Link>
           <Link to="/lancamentos" className={styles.nav_link}>
@@ -49,6 +87,9 @@ const Navbar = () => {
           </Link>
           <Link to="/reviews" className={styles.nav_link}>
             Reviews
+          </Link>
+          <Link to="/About" className={styles.nav_link}>
+            Sobre
           </Link>
         </div>
 
@@ -64,14 +105,19 @@ const Navbar = () => {
         </form>
 
         <div className={styles.auth_buttons}>
-          {isAdmin ? (
+          {user ? (
             <>
-              <Link to="/admin" className={styles.nav_link}>
-                Admin
-              </Link>
-              <button onClick={handleLogout} className={styles.login_button}>
-                Sair
-              </button>
+              {user.role === "admin" && (
+                <Link to="/admin" className={styles.nav_link}>
+                  Admin
+                </Link>
+              )}
+              <div className={styles.user_menu}>
+                <span className={styles.user_name}>Olá, {user.name}</span>
+                <button onClick={handleLogout} className={styles.logout_button}>
+                  Sair
+                </button>
+              </div>
             </>
           ) : (
             <>
@@ -85,7 +131,10 @@ const Navbar = () => {
           )}
         </div>
 
-        <button className={styles.menu_button}>
+        <button 
+          className={`${styles.menu_button} ${isMenuOpen ? styles.active : ""}`}
+          onClick={toggleMenu}
+        >
           <CiMenuFries />
         </button>
       </div>

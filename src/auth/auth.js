@@ -1,29 +1,20 @@
-import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
+import { initializeDatabase } from '../database/config.js';
 
-// Configurações do JWT
-const JWT_SECRET = process.env.JWT_SECRET || 'sua_chave_secreta_muito_segura';
-const JWT_EXPIRES_IN = '24h';
-const RESET_TOKEN_EXPIRES_IN = '1h';
+let db;
+
+// Inicializar banco de dados
+(async () => {
+  try {
+    db = await initializeDatabase();
+    console.log('Banco de dados conectado');
+  } catch (error) {
+    console.error('Erro ao conectar ao banco de dados:', error);
+    process.exit(1);
+  }
+})();
 
 // Funções auxiliares
-const generateToken = (user) => {
-  return jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN }
-  );
-};
-
-const verifyToken = (token) => {
-  try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch (error) {
-    throw new Error('Token inválido ou expirado');
-  }
-};
-
 const hashPassword = async (password) => {
   const salt = await bcrypt.genSalt(10);
   return bcrypt.hash(password, salt);
@@ -34,11 +25,13 @@ const comparePasswords = async (password, hashedPassword) => {
 };
 
 // Funções principais
-export const registerUser = async (db, { name, email, password }) => {
+export const registerUser = async ({ name, email, password }) => {
+  if (!db) throw new Error('Banco de dados não inicializado');
+
   // Verificar se o email já está cadastrado
   const existingUser = await db.get('SELECT id FROM users WHERE email = ?', [email]);
   if (existingUser) {
-    throw new Error('Email já cadastrado');
+    throw new Error('Este email já está cadastrado');
   }
 
   // Hash da senha
@@ -46,8 +39,8 @@ export const registerUser = async (db, { name, email, password }) => {
 
   // Inserir usuário
   const result = await db.run(
-    'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
-    [name, email, hashedPassword]
+    'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+    [name, email, hashedPassword, 'user']
   );
 
   // Buscar usuário criado (sem a senha)
@@ -56,13 +49,12 @@ export const registerUser = async (db, { name, email, password }) => {
     [result.lastID]
   );
 
-  // Gerar token
-  const token = generateToken(user);
-
-  return { user, token };
+  return { user };
 };
 
-export const loginUser = async (db, { email, password }) => {
+export const loginUser = async ({ email, password }) => {
+  if (!db) throw new Error('Banco de dados não inicializado');
+
   // Buscar usuário
   const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
   if (!user) {
@@ -78,13 +70,12 @@ export const loginUser = async (db, { email, password }) => {
   // Remover senha do objeto do usuário
   const { password: _, ...userWithoutPassword } = user;
 
-  // Gerar token
-  const token = generateToken(user);
-
-  return { user: userWithoutPassword, token };
+  return { user: userWithoutPassword };
 };
 
-export const generateResetToken = async (db, email) => {
+export const generateResetToken = async (email) => {
+  if (!db) throw new Error('Banco de dados não inicializado');
+
   // Buscar usuário
   const user = await db.get('SELECT id FROM users WHERE email = ?', [email]);
   if (!user) {
@@ -92,8 +83,8 @@ export const generateResetToken = async (db, email) => {
     return { message: 'Se o email estiver cadastrado, você receberá as instruções para redefinir sua senha.' };
   }
 
-  // Gerar token
-  const resetToken = crypto.randomBytes(32).toString('hex');
+  // Gerar token simples (6 dígitos)
+  const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
   const resetTokenExpires = new Date(Date.now() + 3600000); // 1 hora
 
   // Salvar token no banco
@@ -102,7 +93,7 @@ export const generateResetToken = async (db, email) => {
     [resetToken, resetTokenExpires.toISOString(), user.id]
   );
 
-  // Em produção, aqui você enviaria um email com o link de redefinição
+  // Em produção, aqui você enviaria um email com o código
   // Por enquanto, retornamos o token para teste
   return {
     message: 'Se o email estiver cadastrado, você receberá as instruções para redefinir sua senha.',
@@ -110,7 +101,9 @@ export const generateResetToken = async (db, email) => {
   };
 };
 
-export const resetPassword = async (db, token, newPassword) => {
+export const resetPassword = async (token, newPassword) => {
+  if (!db) throw new Error('Banco de dados não inicializado');
+
   // Buscar usuário pelo token
   const user = await db.get(
     'SELECT id FROM users WHERE reset_token = ? AND reset_token_expires > ?',
@@ -118,7 +111,7 @@ export const resetPassword = async (db, token, newPassword) => {
   );
 
   if (!user) {
-    throw new Error('Token inválido ou expirado');
+    throw new Error('Código inválido ou expirado');
   }
 
   // Hash da nova senha
@@ -133,27 +126,10 @@ export const resetPassword = async (db, token, newPassword) => {
   return { message: 'Senha redefinida com sucesso' };
 };
 
-// Middleware de autenticação
-export const authenticateToken = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'Token não fornecido' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const decoded = verifyToken(token);
-    req.user = decoded;
-    next();
-  } catch (error) {
-    res.status(401).json({ error: error.message });
-  }
-};
-
-// Middleware de verificação de admin
+// Middleware para verificar se é admin
 export const requireAdmin = (req, res, next) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Acesso negado' });
+  if (!req.session.user || req.session.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Acesso negado' });
   }
   next();
-}; 
+};

@@ -25,6 +25,12 @@ export default function Register() {
         e.preventDefault();
         setError("");
 
+        // Validações
+        if (formData.password.length < 6) {
+            setError("A senha deve ter pelo menos 6 caracteres");
+            return;
+        }
+
         if (formData.password !== formData.confirmPassword) {
             setError("As senhas não coincidem");
             return;
@@ -51,7 +57,7 @@ export default function Register() {
                 throw new Error(data.message || "Erro ao criar conta");
             }
 
-            // Redireciona para a página de login
+            // Redireciona para a página de login com mensagem de sucesso
             navigate("/login", { 
                 state: { message: "Conta criada com sucesso! Faça login para continuar." }
             });
@@ -69,7 +75,7 @@ export default function Register() {
                 <div className={styles.auth_content}>
                     <div className={styles.auth_header}>
                         <h1>Criar Conta</h1>
-                        <p>Junte-se à nossa comunidade de amantes de anime</p>
+                        <p>Preencha os dados abaixo para criar sua conta</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className={styles.auth_form}>
@@ -83,6 +89,7 @@ export default function Register() {
                                 onChange={handleChange}
                                 placeholder="Seu nome completo"
                                 required
+                                autoComplete="name"
                             />
                         </div>
 
@@ -96,6 +103,7 @@ export default function Register() {
                                 onChange={handleChange}
                                 placeholder="seu@email.com"
                                 required
+                                autoComplete="email"
                             />
                         </div>
 
@@ -109,6 +117,7 @@ export default function Register() {
                                 onChange={handleChange}
                                 placeholder="••••••••"
                                 required
+                                autoComplete="new-password"
                                 minLength={6}
                             />
                         </div>
@@ -123,6 +132,7 @@ export default function Register() {
                                 onChange={handleChange}
                                 placeholder="••••••••"
                                 required
+                                autoComplete="new-password"
                                 minLength={6}
                             />
                         </div>

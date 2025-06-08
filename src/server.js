@@ -1,150 +1,218 @@
 import express from 'express';
 import cors from 'cors';
-import { initializeDatabase } from './database/config.js';
+import session from 'express-session';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import {
   registerUser,
   loginUser,
   generateResetToken,
   resetPassword,
-  authenticateToken,
   requireAdmin
 } from './auth/auth.js';
+import { initializeDatabase } from './database/config.js';
+
+let db;
+(async () => {
+  try {
+    db = await initializeDatabase();
+    console.log('Banco de dados conectado');
+  } catch (error) {
+    console.error('Erro ao conectar ao banco de dados:', error);
+    process.exit(1);
+  }
+})();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
 app.use(express.json());
+app.use(express.static(join(__dirname, 'dist')));
 
-// Middleware de tratamento de erros
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Erro interno do servidor' });
-});
+// Configuração da sessão
+app.use(session({
+  secret: 'sua_chave_secreta_muito_segura',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false,
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000
+  }
+}));
 
-// Middleware para verificar se o banco está inicializado
-const checkDatabase = (req, res, next) => {
-  if (!db) {
-    return res.status(503).json({ error: 'Serviço indisponível. Banco de dados não inicializado.' });
+// Middleware de autenticação
+const requireAuth = (req, res, next) => {
+  if (!req.session.user) {
+    return res.status(401).json({ message: 'Não autorizado' });
   }
   next();
 };
 
-// Inicializar banco de dados
-let db;
-initializeDatabase()
-  .then(database => {
-    db = database;
-    console.log('Banco de dados inicializado com sucesso!');
-  })
-  .catch(error => {
-    console.error('Erro ao inicializar o banco de dados:', error);
-    process.exit(1);
-  });
-
 // Rotas de autenticação
-app.post('/api/auth/register', checkDatabase, async (req, res) => {
+app.post('/api/auth/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-    
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
-    }
-
-    const result = await registerUser(db, { name, email, password });
-    return res.status(201).json(result);
+    const { user } = await registerUser(req.body);
+    res.status(201).json({ user });
   } catch (error) {
-    console.error('Erro no registro:', error);
-    return res.status(400).json({ error: error.message });
+    res.status(400).json({ message: error.message });
   }
 });
 
-app.post('/api/auth/login', checkDatabase, async (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email e senha são obrigatórios' });
-    }
-
-    const result = await loginUser(db, { email, password });
-    return res.json(result);
+    const { user } = await loginUser(req.body);
+    req.session.user = user;
+    res.json({ user });
   } catch (error) {
-    console.error('Erro no login:', error);
-    return res.status(401).json({ error: error.message });
+    res.status(401).json({ message: error.message });
   }
 });
 
-app.post('/api/auth/forgot-password', checkDatabase, async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ error: 'Email é obrigatório' });
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) {
+      return res.status(500).json({ message: 'Erro ao sair da sessão' });
     }
+    res.json({ message: 'Logout realizado com sucesso' });
+  });
+});
 
-    const result = await generateResetToken(db, email);
-    return res.json(result);
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const result = await generateResetToken(req.body.email);
+    res.json(result);
   } catch (error) {
-    console.error('Erro na recuperação de senha:', error);
-    return res.status(400).json({ error: error.message });
+    res.status(400).json({ message: error.message });
   }
 });
 
-app.post('/api/auth/reset-password', checkDatabase, async (req, res) => {
+app.post('/api/auth/reset-password', async (req, res) => {
   try {
     const { token, newPassword } = req.body;
-
-    if (!token || !newPassword) {
-      return res.status(400).json({ error: 'Token e nova senha são obrigatórios' });
-    }
-
-    const result = await resetPassword(db, token, newPassword);
-    return res.json(result);
+    const result = await resetPassword(token, newPassword);
+    res.json(result);
   } catch (error) {
-    console.error('Erro na redefinição de senha:', error);
-    return res.status(400).json({ error: error.message });
+    res.status(400).json({ message: error.message });
   }
 });
 
-// Rota protegida para obter informações do usuário
-app.get('/api/auth/me', checkDatabase, authenticateToken, async (req, res) => {
-  try {
-    const user = await db.get('SELECT id, name, email, role FROM users WHERE id = ?', [req.user.id]);
-    
-    if (!user) {
-      return res.status(404).json({ error: 'Usuário não encontrado' });
-    }
-
-    return res.json(user);
-  } catch (error) {
-    console.error('Erro ao buscar usuário:', error);
-    return res.status(500).json({ error: 'Erro ao buscar usuário' });
-  }
+app.get('/api/auth/status', (req, res) => {
+  res.json({ user: req.session.user || null });
 });
 
-// Rota protegida para administradores
-app.get('/api/admin/users', checkDatabase, authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const users = await db.all('SELECT id, name, email, role, created_at FROM users');
-    return res.json(users);
-  } catch (error) {
-    console.error('Erro ao buscar usuários:', error);
-    return res.status(500).json({ error: 'Erro ao buscar usuários' });
-  }
-});
-
-// Rota de verificação de saúde do servidor
 app.get('/api/health', (req, res) => {
-  res.json({ 
+  res.json({
     status: 'ok',
     database: db ? 'connected' : 'disconnected',
     timestamp: new Date().toISOString()
   });
 });
 
+// CRUD Notices
+app.get('/Notices', async (req, res) => {
+  try {
+    const posts = await db.all('SELECT * FROM posts');
+    res.json(posts);
+  } catch (error) {
+    console.error('Erro ao buscar posts:', error);
+    res.status(500).json({ message: 'Erro ao buscar posts' });
+  }
+});
+
+app.get('/Notices/:id', async (req, res) => {
+  try {
+    const post = await db.get('SELECT * FROM posts WHERE id = ?', [req.params.id]);
+    if (!post) return res.status(404).json({ message: 'Post não encontrado' });
+    res.json(post);
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao buscar post' });
+  }
+});
+
+app.post('/Notices', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { title, body, body2, imageUrl, imageUrl2, videoUrl, author } = req.body;
+    const result = await db.run(
+      'INSERT INTO posts (title, body, body2, image_url, image_url2, video_url, author, date, author_id) VALUES (?, ?, ?, ?, ?, ?, ?, datetime("now"), ?)',
+      [title, body, body2, imageUrl, imageUrl2, videoUrl, author, req.session.user.id]
+    );
+    res.status(201).json({ id: result.lastID });
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao criar post' });
+  }
+});
+
+app.put('/Notices/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { title, body, body2, imageUrl, imageUrl2, videoUrl, author } = req.body;
+    const result = await db.run(
+      'UPDATE posts SET title = ?, body = ?, body2 = ?, image_url = ?, image_url2 = ?, video_url = ?, author = ?, date = datetime("now") WHERE id = ?',
+      [title, body, body2, imageUrl, imageUrl2, videoUrl, author, req.params.id]
+    );
+    if (result.changes === 0) return res.status(404).json({ message: 'Post não encontrado' });
+    res.json({ message: 'Post atualizado com sucesso' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao atualizar post' });
+  }
+});
+
+app.delete('/Notices/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const result = await db.run('DELETE FROM posts WHERE id = ?', [req.params.id]);
+    if (result.changes === 0) return res.status(404).json({ message: 'Post não encontrado' });
+    res.json({ message: 'Post excluído com sucesso' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao excluir post' });
+  }
+});
+
+// CRUD Comments
+app.get('/Comments', async (req, res) => {
+  try {
+    const comments = await db.all('SELECT * FROM comments');
+    res.json(comments);
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao buscar comentários' });
+  }
+});
+
+app.get('/Comments/:postId', async (req, res) => {
+  try {
+    const comments = await db.all('SELECT * FROM comments WHERE post_id = ?', [req.params.postId]);
+    res.json(comments);
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao buscar comentários' });
+  }
+});
+
+app.post('/Comments', requireAuth, async (req, res) => {
+  try {
+    const { postId, text } = req.body;
+    const result = await db.run(
+      'INSERT INTO comments (post_id, content, user_id, created_at) VALUES (?, ?, ?, datetime("now"))',
+      [postId, text, req.session.user.id]
+    );
+    res.status(201).json({ id: result.lastID });
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao criar comentário' });
+  }
+});
+
+// Rota SPA
+app.get('*', (req, res) => {
+  res.sendFile(join(__dirname, 'dist', 'index.html'));
+});
+
 // Iniciar servidor
 app.listen(port, () => {
-  console.log(`Servidor rodando na porta ${port}`);
-}); 
+  console.log(`Servidor rodando em http://localhost:${port}`);
+});

@@ -1,15 +1,24 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import styles from "../styles/Auth.module.css";
 
 export default function Login() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [formData, setFormData] = useState({
         email: "",
         password: "",
     });
     const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+
+    // Mostrar mensagem de sucesso se vier da página de registro
+    useEffect(() => {
+        if (location.state?.message) {
+            setSuccess(location.state.message);
+        }
+    }, [location]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -22,6 +31,7 @@ export default function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
+        setSuccess("");
         setIsLoading(true);
 
         try {
@@ -30,6 +40,7 @@ export default function Login() {
                 headers: {
                     "Content-Type": "application/json",
                 },
+                credentials: "include", // Importante para enviar cookies
                 body: JSON.stringify(formData),
             });
 
@@ -39,12 +50,11 @@ export default function Login() {
                 throw new Error(data.message || "Erro ao fazer login");
             }
 
-            // Armazena o token no localStorage
-            localStorage.setItem("token", data.token);
-            localStorage.setItem("user", JSON.stringify(data.user));
+            // Atualiza o estado de autenticação
+            window.dispatchEvent(new Event("auth"));
 
             // Redireciona para a página inicial
-            navigate("/");
+            navigate("/", { replace: true });
         } catch (err) {
             setError(err.message);
         } finally {
@@ -62,6 +72,12 @@ export default function Login() {
                         <p>Entre com suas credenciais para acessar sua conta</p>
                     </div>
 
+                    {success && (
+                        <div className={styles.success_message}>
+                            {success}
+                        </div>
+                    )}
+
                     <form onSubmit={handleSubmit} className={styles.auth_form}>
                         <div className={styles.form_group}>
                             <label htmlFor="email">E-mail</label>
@@ -73,6 +89,7 @@ export default function Login() {
                                 onChange={handleChange}
                                 placeholder="seu@email.com"
                                 required
+                                autoComplete="email"
                             />
                         </div>
 
@@ -86,6 +103,8 @@ export default function Login() {
                                 onChange={handleChange}
                                 placeholder="••••••••"
                                 required
+                                autoComplete="current-password"
+                                minLength={6}
                             />
                         </div>
 

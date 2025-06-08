@@ -1,17 +1,14 @@
-import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
+import sqlite3 from 'sqlite3';
 
 // Configuração do banco de dados
-const dbConfig = {
-  filename: './database.sqlite',
+export const dbConfig = {
+  filename: 'database.sqlite',
   driver: sqlite3.Database
 };
 
-// Função para inicializar o banco de dados
-async function initializeDatabase() {
-  const db = await open(dbConfig);
-
-  // Criar tabela de usuários se não existir
+// Criar tabelas
+export const createTables = async (db) => {
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,44 +17,38 @@ async function initializeDatabase() {
       password TEXT NOT NULL,
       role TEXT DEFAULT 'user',
       reset_token TEXT,
-      reset_token_expires DATETIME,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+      reset_token_expires TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
 
-  // Criar tabela de posts se não existir
-  await db.exec(`
     CREATE TABLE IF NOT EXISTS posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       body TEXT NOT NULL,
+      body2 TEXT,
       image_url TEXT,
-      category TEXT NOT NULL,
+      image_url2 TEXT,
+      video_url TEXT,
+      author TEXT NOT NULL,
+      date DATETIME DEFAULT CURRENT_TIMESTAMP,
       author_id INTEGER,
-      featured BOOLEAN DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (author_id) REFERENCES users(id)
-    )
-  `);
+    );
 
-  // Criar tabela de comentários se não existir
-  await db.exec(`
     CREATE TABLE IF NOT EXISTS comments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       post_id INTEGER NOT NULL,
-      user_id INTEGER NOT NULL,
-      content TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (post_id) REFERENCES posts(id),
-      FOREIGN KEY (user_id) REFERENCES users(id)
-    )
+      user TEXT NOT NULL,
+      comment TEXT NOT NULL,
+      date DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (post_id) REFERENCES posts(id)
+    );
   `);
+};
 
+// Função para inicializar o banco de dados
+export const initializeDatabase = async () => {
+  const db = await open(dbConfig);
+  await createTables(db);
   return db;
-}
-
-// Exportar a função de inicialização e a configuração
-export { initializeDatabase, dbConfig }; 
+}; 
