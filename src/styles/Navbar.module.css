@@ -38,6 +38,18 @@
     align-items: center;
 }
 
+.nav_link_icons {
+    color: var(--color-text-primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+    margin-top: 0.4rem;
+}
+
+.nav_link_icons:hover {
+    color: var(--color-accent);
+}
+
 .nav_link {
     color: var(--color-text-primary);
     text-decoration: none;
@@ -152,6 +164,24 @@
 
 .menu_button.active {
     color: var(--color-accent);
+}
+
+.logout_icon_button {
+    background: none;
+    border: none;
+    color: var(--color-text-primary);
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: color 0.2s, background 0.2s;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logout_icon_button:hover {
+    color: var(--color-accent);
+    background: none;
 }
 
 @media (max-width: 768px) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CiSearch, CiMenuFries, CiStar } from "react-icons/ci";
+import { CiSearch, CiMenuFries, CiStar, CiUser, CiSquarePlus, CiSettings, CiLogout } from "react-icons/ci";
 import styles from "../styles/Navbar.module.css";
 
 const Navbar = () => {
@@ -108,14 +108,18 @@ const Navbar = () => {
           {user ? (
             <>
               {user.role === "admin" && (
-                <Link to="/admin" className={styles.nav_link}>
-                  Admin
-                </Link>
+                <>
+                  <Link to="/new" className={styles.nav_link_icons} title="Novo Post">
+                    <CiSquarePlus size={24} />
+                  </Link>
+                  <Link to="/admin" className={styles.nav_link_icons} title="Configurações">
+                    <CiSettings size={24} />
+                  </Link>
+                </>
               )}
               <div className={styles.user_menu}>
-                <span className={styles.user_name}>Olá, {user.name}</span>
-                <button onClick={handleLogout} className={styles.logout_button}>
-                  Sair
+                <button onClick={handleLogout} className={styles.logout_icon_button} title="Sair">
+                  <CiLogout size={24} />
                 </button>
               </div>
             </>
