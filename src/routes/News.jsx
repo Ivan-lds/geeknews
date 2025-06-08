@@ -37,6 +37,7 @@ const Post = () => {
   };
 
   const getTimeElapsed = (timestamp) => {
+    if (!timestamp) return "";
     const now = new Date();
     const commentDate = new Date(timestamp);
     const differenceInSeconds = Math.floor((now - commentDate) / 1000);
@@ -68,19 +69,30 @@ const Post = () => {
         const newCommentData = {
           postId: id,
           text: newComment,
-          user: loggedUser || "Anônimo", // Nome do usuário logado ou "Anônimo" por padrão
-          createDate: new Date().toISOString(),
+          user: loggedUser || "Anônimo"
         };
-        await blogFetch.post("/Comments", newCommentData);
-        setComments((prevComments) =>
-          Array.isArray(prevComments)
-            ? [...prevComments, newCommentData]
-            : [newCommentData]
-        );
+
+        console.log("Enviando comentário:", newCommentData);
+        const response = await blogFetch.post("/Comments", newCommentData);
+        console.log("Resposta do servidor:", response.data);
+        
+        const savedComment = response.data;
+
+        setComments((prevComments) => {
+          const updatedComments = Array.isArray(prevComments) ? [...prevComments] : [];
+          updatedComments.unshift(savedComment);
+          return updatedComments;
+        });
 
         setNewComment("");
       } catch (error) {
-        console.log(error);
+        console.error("Erro ao enviar comentário:", error);
+        console.error("Detalhes do erro:", {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+        alert("Erro ao enviar comentário. Tente novamente.");
       }
     }
   };
@@ -88,16 +100,16 @@ const Post = () => {
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        const response = await blogFetch.get("/Comments");
-        setComments(response.data || []); // Se os dados forem indefinidos, define como array vazio
+        const response = await blogFetch.get(`/Comments/${id}`);
+        setComments(response.data || []);
       } catch (error) {
         console.error("Erro ao buscar comentários:", error);
-        setComments([]); // Evita problemas caso a API falhe
+        setComments([]);
       }
     };
 
     fetchComments();
-  }, []);
+  }, [id]);
 
   const formatDate = (isoDate) => {
     if (!isoDate) return "";
@@ -206,15 +218,14 @@ const Post = () => {
 
             <div className={styles.commentList}>
               {(Array.isArray(comments) ? comments : []).map(
-                (comment, index) => (
-                  <div key={index} className={styles.commentItem}>
+                (comment) => (
+                  <div key={comment.id} className={styles.commentItem}>
                     <p>
-                      <strong>{comment.user}:</strong>{" "}
-                      {/* Exibindo o username */}
+                      <strong>{comment.user}:</strong>
                     </p>
-                    <p>{comment.text}</p>
+                    <p>{comment.comment}</p>
                     <p className={styles.timeElapsed}>
-                      {getTimeElapsed(comment.createDate)}
+                      {getTimeElapsed(comment.created_at)}
                     </p>
                   </div>
                 )

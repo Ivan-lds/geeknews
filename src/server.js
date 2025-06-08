@@ -178,32 +178,70 @@ app.delete('/Notices/:id', requireAuth, requireAdmin, async (req, res) => {
 // CRUD Comments
 app.get('/Comments', async (req, res) => {
   try {
-    const comments = await db.all('SELECT * FROM comments');
+    const comments = await db.all('SELECT * FROM comments ORDER BY created_at DESC');
     res.json(comments);
   } catch (error) {
+    console.error('Erro ao buscar comentários:', error);
     res.status(500).json({ message: 'Erro ao buscar comentários' });
   }
 });
 
 app.get('/Comments/:postId', async (req, res) => {
   try {
-    const comments = await db.all('SELECT * FROM comments WHERE post_id = ?', [req.params.postId]);
+    const comments = await db.all('SELECT * FROM comments WHERE post_id = ? ORDER BY created_at DESC', [req.params.postId]);
     res.json(comments);
   } catch (error) {
-    res.status(500).json({ message: 'Erro ao buscar comentários' });
+    console.error('Erro ao buscar comentários do post:', error);
+    res.status(500).json({ message: 'Erro ao buscar comentários do post' });
   }
 });
 
-app.post('/Comments', requireAuth, async (req, res) => {
+app.post('/Comments', async (req, res) => {
   try {
-    const { postId, text } = req.body;
+    if (!db) {
+      console.error('Banco de dados não inicializado');
+      return res.status(500).json({ message: 'Erro de conexão com o banco de dados' });
+    }
+
+    const { postId, text, user } = req.body;
+    console.log('Recebendo requisição de comentário:', { postId, text, user });
+    
+    if (!postId || !text) {
+      console.log('Campos obrigatórios faltando:', { postId, text });
+      return res.status(400).json({ message: 'Post ID e texto do comentário são obrigatórios' });
+    }
+
+    // Verificar se o post existe
+    const post = await db.get('SELECT id FROM posts WHERE id = ?', [postId]);
+    if (!post) {
+      console.log('Post não encontrado:', postId);
+      return res.status(404).json({ message: 'Post não encontrado' });
+    }
+
+    console.log('Inserindo comentário no banco de dados...');
     const result = await db.run(
-      'INSERT INTO comments (post_id, content, user_id, created_at) VALUES (?, ?, ?, datetime("now"))',
-      [postId, text, req.session.user.id]
+      'INSERT INTO comments (post_id, user, comment, created_at) VALUES (?, ?, ?, datetime("now"))',
+      [postId, user || "Anônimo", text]
     );
-    res.status(201).json({ id: result.lastID });
+    console.log('Comentário inserido com sucesso:', result);
+
+    const newComment = {
+      id: result.lastID,
+      post_id: postId,
+      user: user || "Anônimo",
+      comment: text,
+      created_at: new Date().toISOString()
+    };
+
+    console.log('Retornando novo comentário:', newComment);
+    res.status(201).json(newComment);
   } catch (error) {
-    res.status(500).json({ message: 'Erro ao criar comentário' });
+    console.error('Erro detalhado ao criar comentário:', error);
+    res.status(500).json({ 
+      message: 'Erro ao criar comentário',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
