@@ -161,6 +161,61 @@ iframe {
     }
 }
 
+.commentReactions {
+    display: flex;
+    gap: 1rem;
+    margin: 0.5rem 0;
+}
+
+.reactionButton {
+    display: flex;
+    height: 3rem;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.1rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.reactionButton:hover {
+    background-color: var(--color-bg-secondary);
+    transform: translateY(-1px);
+}
+
+.reactionButton.active {
+    background-color: var(--color-accent);
+    color: var(--color-text-alternative);
+    border-color: var(--color-accent);
+}
+
+.reactionButton svg {
+    font-size: 1.1rem;
+}
+
+.deleteButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border: 0.1rem solid #ff4444;
+    border-radius: 4px;
+    color: #ff4444;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 36px;
+    min-height: 36px;
+}
+
+.deleteButton svg {
+    width: 20px;
+    height: 20px;
+}
+
 /* Responsividade */
 @media (max-width: 1024px) {
     .post_container {

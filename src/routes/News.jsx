@@ -1,17 +1,21 @@
 import blogFetch from "../axios/config";
 import { CiCalendar } from "react-icons/ci";
 import { CiEdit } from "react-icons/ci";
+import { FaThumbsUp, FaThumbsDown, FaTrash } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import styles from "./News.module.css";
 
 const Post = () => {
   const { id } = useParams();
-  const [post, setPost] = useState({});
+  const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
-  // Simulei um exemplo onde o nome do usuário está armazenado no localStorage
-  const loggedUser = localStorage.getItem("loggedUser"); // Nome do usuário logado
+  const [loading, setLoading] = useState(true);
+
+  // Pegar o usuário do localStorage
+  const loggedUser = JSON.parse(localStorage.getItem("user"));
+  console.log("Usuário do localStorage:", loggedUser);
 
   useEffect(() => {
     const getPost = async () => {
@@ -23,14 +27,15 @@ const Post = () => {
         console.log("URL do vídeo:", response.data.video_url);
         setPost(response.data);
 
-        const commentsResponse = await blogFetch.get(`/Comments/${id}`);
+        // Buscar comentários incluindo as reações do usuário logado
+        const commentsResponse = await blogFetch.get(`/Comments/${id}${loggedUser ? `?user=${loggedUser.username}` : ''}`);
         setComments(commentsResponse.data);
       } catch (error) {
         console.error("Erro ao buscar post:", error);
       }
     };
     getPost();
-  }, [id]);
+  }, [id, loggedUser]);
 
   const handleCommentChange = (event) => {
     setNewComment(event.target.value);
@@ -111,7 +116,7 @@ const Post = () => {
         const newCommentData = {
           postId: id,
           text: newComment,
-          user: loggedUser || "Anônimo"
+          user: loggedUser ? loggedUser.username : "Anônimo"
         };
 
         console.log("Enviando comentário:", newCommentData);
@@ -139,19 +144,55 @@ const Post = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchComments = async () => {
-      try {
-        const response = await blogFetch.get(`/Comments/${id}`);
-        setComments(response.data || []);
-      } catch (error) {
-        console.error("Erro ao buscar comentários:", error);
-        setComments([]);
-      }
-    };
+  const handleReaction = async (commentId, reactionType) => {
+    if (!loggedUser) {
+      alert("Você precisa estar logado para reagir aos comentários");
+      return;
+    }
 
-    fetchComments();
-  }, [id]);
+    if (!loggedUser.username) {
+      console.error("Usuário logado não tem username:", loggedUser);
+      alert("Erro ao identificar usuário. Por favor, faça login novamente.");
+      return;
+    }
+
+    try {
+      console.log('Enviando reação:', { 
+        commentId, 
+        user: loggedUser.username, 
+        reactionType,
+        loggedUser 
+      });
+
+      const response = await blogFetch.post(`/Comments/${commentId}/reactions`, {
+        user: loggedUser.username,
+        reactionType
+      });
+
+      console.log('Resposta da reação:', response.data);
+
+      // Atualizar o comentário na lista
+      setComments(prevComments => 
+        prevComments.map(comment => 
+          comment.id === commentId ? response.data : comment
+        )
+      );
+    } catch (error) {
+      console.error("Erro ao processar reação:", error);
+      console.error("Detalhes do erro:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+
+      if (error.response?.status === 400) {
+        const errorMessage = error.response.data?.details || error.response.data?.error || "Você precisa estar logado para reagir aos comentários";
+        alert(errorMessage);
+      } else {
+        alert("Erro ao processar sua reação. Tente novamente.");
+      }
+    }
+  };
 
   const formatDate = (isoDate) => {
     if (!isoDate) return "";
@@ -172,9 +213,25 @@ const Post = () => {
       .join("");
   };
 
+  const handleDeleteComment = async (commentId) => {
+    if (!loggedUser || loggedUser.role !== 'admin') return;
+
+    if (window.confirm('Tem certeza que deseja apagar este comentário?')) {
+      try {
+        await blogFetch.delete(`/Comments/${commentId}`, {
+          data: { user: loggedUser }
+        });
+        setComments(comments.filter(comment => comment.id !== commentId));
+      } catch (error) {
+        console.error('Erro ao apagar comentário:', error);
+        alert('Erro ao apagar comentário');
+      }
+    }
+  };
+
   return (
     <div className={styles.post_container}>
-      {!post.title ? (
+      {!post ? (
         <p>Carregando...</p>
       ) : (
         <div className={styles.post_content}>
@@ -259,19 +316,67 @@ const Post = () => {
             </div>
 
             <div className={styles.commentList}>
-              {(Array.isArray(comments) ? comments : []).map(
-                (comment) => (
+              {(Array.isArray(comments) ? comments : []).map((comment) => {
+                console.log("Renderizando comentário:", comment);
+                console.log("Usuário atual:", loggedUser);
+                console.log("É admin?", loggedUser?.role === 'admin');
+                
+                return (
                   <div key={comment.id} className={styles.commentItem}>
-                    <p>
-                      <strong>{comment.user}:</strong>
-                    </p>
-                    <p>{comment.comment}</p>
-                    <p className={styles.timeElapsed}>
-                      {getTimeElapsed(comment.created_at)}
-                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
+                      <div>
+                        <p>
+                          <strong>{comment.user}:</strong>
+                        </p>
+                        <p>{comment.comment}</p>
+                        <p className={styles.timeElapsed}>
+                          {getTimeElapsed(comment.created_at)}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div className={styles.commentReactions}>
+                          <button
+                            className={`${styles.reactionButton} ${comment.user_reaction === 'like' ? styles.active : ''}`}
+                            onClick={() => handleReaction(comment.id, 'like')}
+                            disabled={!loggedUser}
+                            title={!loggedUser ? 'Faça login para reagir' : 'Curtir'}
+                          >
+                            <FaThumbsUp /> {comment.likes || 0}
+                          </button>
+                          <button
+                            className={`${styles.reactionButton} ${comment.user_reaction === 'dislike' ? styles.active : ''}`}
+                            onClick={() => handleReaction(comment.id, 'dislike')}
+                            disabled={!loggedUser}
+                            title={!loggedUser ? 'Faça login para reagir' : 'Não curtir'}
+                          >
+                            <FaThumbsDown /> {comment.dislikes || 0}
+                          </button>
+                        </div>
+                        {loggedUser && loggedUser.role === 'admin' && (
+                          <button
+                            className={styles.deleteButton}
+                            onClick={() => handleDeleteComment(comment.id)}
+                            title="Apagar comentário"
+                            style={{ 
+                              marginLeft: 'auto', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center',
+                              background: 'none',
+                              border: 'none',
+                              color: '#ff4444',
+                              padding: '4px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <FaTrash style={{ fontSize: '1.2rem' }} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                )
-              )}
+                );
+              })}
             </div>
           </div>
         </div>

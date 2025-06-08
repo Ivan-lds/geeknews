@@ -40,7 +40,7 @@ export default function Login() {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                credentials: "include", // Importante para enviar cookies
+                credentials: "include",
                 body: JSON.stringify(formData),
             });
 
@@ -49,6 +49,16 @@ export default function Login() {
             if (!response.ok) {
                 throw new Error(data.message || "Erro ao fazer login");
             }
+
+            // Adicionar o campo username usando o nome do usuário
+            const userData = {
+                ...data.user,
+                username: data.user.name // Usar o nome como username
+            };
+
+            // Salvar o usuário completo no localStorage
+            localStorage.setItem("user", JSON.stringify(userData));
+            console.log("Usuário salvo no localStorage:", userData);
 
             // Atualiza o estado de autenticação
             window.dispatchEvent(new Event("auth"));

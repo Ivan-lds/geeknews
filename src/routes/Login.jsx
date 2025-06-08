@@ -18,12 +18,20 @@ const Login = () => {
       });
 
       if (response.data.user) {
-        // Armazena informações no localStorage
-        localStorage.setItem("userEmail", response.data.user.email);
-        localStorage.setItem("userRole", response.data.user.role);
-        localStorage.setItem("loggedUser", response.data.user.name);
+        // Salvar o usuário completo no localStorage
+        const userData = {
+          ...response.data.user,
+          username: response.data.user.name // Usar o nome como username
+        };
+        localStorage.setItem("user", JSON.stringify(userData));
+        console.log("Usuário salvo no localStorage:", userData);
 
-        console.log("Usuário logado com sucesso:", response.data.user.email);
+        // Limpar as chaves antigas para evitar conflitos
+        localStorage.removeItem("userEmail");
+        localStorage.removeItem("userRole");
+        localStorage.removeItem("loggedUser");
+
+        console.log("Usuário logado com sucesso:", userData);
         navigate("/"); // Redireciona para a página inicial após login
       }
     } catch (error) {

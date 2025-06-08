@@ -56,7 +56,7 @@ export const loginUser = async ({ email, password }) => {
   if (!db) throw new Error('Banco de dados não inicializado');
 
   // Buscar usuário
-  const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+  const user = await db.get('SELECT id, name, email, password, role FROM users WHERE email = ?', [email]);
   if (!user) {
     throw new Error('Email ou senha inválidos');
   }
@@ -70,6 +70,7 @@ export const loginUser = async ({ email, password }) => {
   // Remover senha do objeto do usuário
   const { password: _, ...userWithoutPassword } = user;
 
+  console.log('Usuário logado:', userWithoutPassword);
   return { user: userWithoutPassword };
 };
 

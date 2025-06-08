@@ -188,7 +188,25 @@ app.get('/Comments', async (req, res) => {
 
 app.get('/Comments/:postId', async (req, res) => {
   try {
-    const comments = await db.all('SELECT * FROM comments WHERE post_id = ? ORDER BY created_at DESC', [req.params.postId]);
+    const { postId } = req.params;
+    const { user } = req.query; // Opcional: usuário logado
+
+    let comments;
+    if (user) {
+      comments = await db.all(`
+        SELECT c.*, cr.reaction_type as user_reaction 
+        FROM comments c 
+        LEFT JOIN comment_reactions cr ON c.id = cr.comment_id AND cr.user = ? 
+        WHERE c.post_id = ? 
+        ORDER BY c.created_at DESC
+      `, [user, postId]);
+    } else {
+      comments = await db.all(
+        'SELECT * FROM comments WHERE post_id = ? ORDER BY created_at DESC',
+        [postId]
+      );
+    }
+
     res.json(comments);
   } catch (error) {
     console.error('Erro ao buscar comentários do post:', error);
@@ -240,6 +258,180 @@ app.post('/Comments', async (req, res) => {
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
+  }
+});
+
+// Rota para gerenciar reações (like/dislike) em comentários
+app.post('/Comments/:commentId/reactions', async (req, res) => {
+  const { commentId } = req.params;
+  const { user, reactionType } = req.body;
+
+  console.log('Recebendo requisição de reação:', {
+    commentId,
+    user,
+    reactionType,
+    body: req.body,
+    headers: req.headers
+  });
+
+  if (!user) {
+    console.log('Erro: usuário não fornecido');
+    return res.status(400).json({ 
+      error: 'Usuário não fornecido',
+      details: 'É necessário estar logado para reagir aos comentários'
+    });
+  }
+
+  if (!reactionType || !['like', 'dislike'].includes(reactionType)) {
+    console.log('Erro: tipo de reação inválido:', reactionType);
+    return res.status(400).json({ 
+      error: 'Tipo de reação inválido',
+      details: 'O tipo de reação deve ser "like" ou "dislike"'
+    });
+  }
+
+  try {
+    // Verificar se o comentário existe
+    const comment = await db.get('SELECT * FROM comments WHERE id = ?', [commentId]);
+    console.log('Comentário encontrado:', comment);
+
+    if (!comment) {
+      console.log('Erro: comentário não encontrado:', commentId);
+      return res.status(404).json({ 
+        error: 'Comentário não encontrado',
+        details: `Comentário com ID ${commentId} não existe`
+      });
+    }
+
+    // Verificar se já existe uma reação do usuário
+    const existingReaction = await db.get(
+      'SELECT * FROM comment_reactions WHERE comment_id = ? AND user = ?',
+      [commentId, user]
+    );
+    console.log('Reação existente:', existingReaction);
+
+    // Iniciar uma transação para garantir consistência
+    await db.run('BEGIN TRANSACTION');
+
+    try {
+      if (existingReaction) {
+        if (existingReaction.reaction_type === reactionType) {
+          // Se a reação for a mesma, remover
+          console.log('Removendo reação existente');
+          await db.run('DELETE FROM comment_reactions WHERE id = ?', [existingReaction.id]);
+          
+          // Atualizar contadores
+          if (reactionType === 'like') {
+            await db.run('UPDATE comments SET likes = likes - 1 WHERE id = ?', [commentId]);
+          } else {
+            await db.run('UPDATE comments SET dislikes = dislikes - 1 WHERE id = ?', [commentId]);
+          }
+        } else {
+          // Se for uma reação diferente, atualizar
+          console.log('Atualizando reação existente');
+          await db.run(
+            'UPDATE comment_reactions SET reaction_type = ? WHERE id = ?',
+            [reactionType, existingReaction.id]
+          );
+          
+          // Atualizar contadores
+          if (existingReaction.reaction_type === 'like') {
+            await db.run('UPDATE comments SET likes = likes - 1, dislikes = dislikes + 1 WHERE id = ?', [commentId]);
+          } else {
+            await db.run('UPDATE comments SET likes = likes + 1, dislikes = dislikes - 1 WHERE id = ?', [commentId]);
+          }
+        }
+      } else {
+        // Adicionar nova reação
+        console.log('Adicionando nova reação');
+        await db.run(
+          'INSERT INTO comment_reactions (comment_id, user, reaction_type) VALUES (?, ?, ?)',
+          [commentId, user, reactionType]
+        );
+        
+        // Atualizar contadores
+        if (reactionType === 'like') {
+          await db.run('UPDATE comments SET likes = likes + 1 WHERE id = ?', [commentId]);
+        } else {
+          await db.run('UPDATE comments SET dislikes = dislikes + 1 WHERE id = ?', [commentId]);
+        }
+      }
+
+      // Commit da transação
+      await db.run('COMMIT');
+
+      // Buscar comentário atualizado com reações
+      const updatedComment = await db.get(`
+        SELECT c.*, 
+               (SELECT reaction_type FROM comment_reactions WHERE comment_id = c.id AND user = ?) as user_reaction
+        FROM comments c 
+        WHERE c.id = ?
+      `, [user, commentId]);
+
+      console.log('Comentário atualizado:', updatedComment);
+      res.json(updatedComment);
+
+    } catch (error) {
+      // Rollback em caso de erro
+      await db.run('ROLLBACK');
+      throw error;
+    }
+
+  } catch (error) {
+    console.error('Erro ao processar reação:', error);
+    console.error('Stack:', error.stack);
+    console.error('Parâmetros:', { commentId, user, reactionType });
+    res.status(500).json({ 
+      error: 'Erro ao processar reação',
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Rota para deletar um comentário (apenas admin)
+app.delete('/Comments/:commentId', async (req, res) => {
+  const { commentId } = req.params;
+  const { user } = req.body;
+
+  console.log('Tentativa de deletar comentário:', { commentId, user });
+
+  if (!user) {
+    console.log('Usuário não fornecido na requisição');
+    return res.status(403).json({ error: 'Usuário não fornecido' });
+  }
+
+  if (user.role !== 'admin') {
+    console.log('Usuário não é admin:', user);
+    return res.status(403).json({ error: 'Acesso negado - Apenas administradores podem deletar comentários' });
+  }
+
+  try {
+    console.log('Verificando se o comentário existe...');
+    const comment = await db.get('SELECT * FROM comments WHERE id = ?', [commentId]);
+    
+    if (!comment) {
+      console.log('Comentário não encontrado:', commentId);
+      return res.status(404).json({ error: 'Comentário não encontrado' });
+    }
+
+    console.log('Deletando reações do comentário...');
+    await db.run('DELETE FROM comment_reactions WHERE comment_id = ?', [commentId]);
+    
+    console.log('Deletando o comentário...');
+    const result = await db.run('DELETE FROM comments WHERE id = ?', [commentId]);
+    
+    if (result.changes === 0) {
+      console.log('Nenhum comentário foi deletado');
+      return res.status(404).json({ error: 'Comentário não encontrado' });
+    }
+
+    console.log('Comentário deletado com sucesso');
+    res.json({ message: 'Comentário deletado com sucesso' });
+  } catch (error) {
+    console.error('Erro ao deletar comentário:', error);
+    console.error('Stack:', error.stack);
+    res.status(500).json({ error: 'Erro ao deletar comentário' });
   }
 });
 
