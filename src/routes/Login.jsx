@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import blogFetch from "../axios/config";
 import "./Login.css";
@@ -6,63 +6,37 @@ import "./Login.css";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [Users, setUsers] = useState([]);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Controle do login
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // Função para buscar usuários
-  const getUsers = async () => {
-    try {
-      const response = await blogFetch.get("/Users");
-      const data = response.data;
-      setUsers(data);
-    } catch (error) {
-      console.log("Erro ao buscar usuários:", error);
-    }
-  };
-
   // Função para realizar o login
-  const handleLogin = () => {
-    // Busca o usuário no banco de dados simulado
-    const user_found = Users.find(
-      (user) => user.email === email && user.password === password
-    );
+  const handleLogin = async () => {
+    try {
+      const response = await blogFetch.post("/api/auth/login", {
+        email,
+        password
+      });
 
-    if (user_found) {
-      // Armazena informações no localStorage
-      localStorage.setItem("userEmail", user_found.email);
-      localStorage.setItem(
-        "isAdmin",
-        user_found.role === "admin" ? "true" : "false"
-      );
-      localStorage.setItem("userRole", user_found.role);
-      localStorage.setItem("loggedUser", user_found.username); // Salva o nome do usuário logado
+      if (response.data.user) {
+        // Armazena informações no localStorage
+        localStorage.setItem("userEmail", response.data.user.email);
+        localStorage.setItem("userRole", response.data.user.role);
+        localStorage.setItem("loggedUser", response.data.user.name);
 
-      console.log("Usuário logado com sucesso:", user_found.email);
-      setIsLoggedIn(true); // Atualiza o estado de login
-      navigate("/"); // Redireciona para a página inicial após login
-    } else {
-      console.log("Credenciais inválidas");
-      navigate("/"); // Redireciona para a página inicial após login
+        console.log("Usuário logado com sucesso:", response.data.user.email);
+        navigate("/"); // Redireciona para a página inicial após login
+      }
+    } catch (error) {
+      console.error("Erro ao fazer login:", error);
+      setError(error.response?.data?.message || "Erro ao fazer login");
     }
   };
-
-  // Verificação de login ao carregar a página
-  useEffect(() => {
-    if (isLoggedIn) return; // Se já fez login, não faz mais nada
-    const userEmail = localStorage.getItem("userEmail");
-    if (userEmail) {
-      console.log("Usuário já está logado:", userEmail);
-    } else {
-      console.log("Usuário não está logado");
-      getUsers(); // Carrega os usuários ao não estar logado
-    }
-  }, [isLoggedIn, navigate]); // Agora verifica apenas após o login ser realizado
 
   return (
     <div className="login-container">
       <div className="login">
         <h1>L O G I N</h1>
+        {error && <p className="error-message">{error}</p>}
         <form>
           <div className="login-inputs">
             <label htmlFor="email">Email:</label>
